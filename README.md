@@ -161,11 +161,13 @@ All endpoints return JSON. The UI and export features build on these.
   "configFile": "/home/me/.sqlens/datasources.json",
   "driversDir": "/home/me/.sqlens/drivers",
   "drivers": ["org.postgresql.Driver"],
+  "driverJarErrors": [],
   "error": null
 }
 ```
 
-Passwords are never returned. `error` explains a missing or broken config file.
+Passwords are never returned. `error` explains a missing or broken config file, and
+`driverJarErrors` lists driver jars Java could not open.
 
 ### `POST /api/query`
 
