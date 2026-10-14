@@ -70,7 +70,7 @@ export function setupExport({ container, notice, maxRows, store }) {
     const text = toTsv(r, STYLES[style.value]);
     try {
       await writeClipboard(text);
-      showNote(`Copied ${r.rows.length.toLocaleString()} row${r.rows.length === 1 ? '' : 's'}`);
+      showNote(`Copied ${r.rows.length.toLocaleString()} row${r.rows.length === 1 ? '' : 's'} with headers to clipboard`);
     } catch (e) {
       showError(`Could not copy to the clipboard: ${e.message}`);
     }
