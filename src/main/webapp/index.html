@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SQLens</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; color: #4c4f69; background: #eff1f5; }
+    code { font-family: ui-monospace, "JetBrains Mono", Consolas, monospace; }
+    pre { background: #e6e9ef; padding: 1rem; overflow: auto; }
+  </style>
+</head>
+<body>
+  <h1>SQLens</h1>
+  <p>The backend is running. The web UI is coming next; meanwhile the API is here:</p>
+  <ul>
+    <li><a href="api/datasources"><code>GET api/datasources</code></a></li>
+    <li><code>POST api/query</code> with <code>{"datasource": "...", "sql": "...", "maxRows": 10}</code></li>
+  </ul>
+  <pre id="datasources">Loading datasources...</pre>
+  <script>
+    fetch('api/datasources').then(r => r.json())
+      .then(d => document.getElementById('datasources').textContent = JSON.stringify(d, null, 2))
+      .catch(e => document.getElementById('datasources').textContent = String(e));
+  </script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+{
+  "datasources": [
+    {
+      "name": "local-postgres",
+      "description": "App database on the devbox",
+      "url": "jdbc:postgresql://localhost:5432/app",
+      "user": "app",
+      "password": "${PGPASSWORD}"
+    },
+    {
+      "name": "local-mysql",
+      "url": "jdbc:mysql://localhost:3306/app",
+      "user": "root",
+      "password": "secret",
+      "properties": { "useSSL": "false", "allowPublicKeyRetrieval": "true" }
+    },
+    {
+      "name": "oracle-test",
+      "description": "Shared test schema, read only",
+      "url": "jdbc:oracle:thin:@//dbhost:1521/TESTPDB",
+      "user": "scott",
+      "password": "${ORACLE_PW}",
+      "readOnly": true,
+      "queryTimeoutSeconds": 60
+    },
+    {
+      "name": "sql-server",
+      "url": "jdbc:sqlserver://localhost:1433;databaseName=app;encrypt=false",
+      "user": "sa",
+      "password": "Secret123!"
+    },
+    {
+      "name": "h2-scratch",
+      "description": "Throwaway in-memory database",
+      "url": "jdbc:h2:mem:scratch;DB_CLOSE_DELAY=-1",
+      "user": "sa",
+      "password": "",
+      "driver": "org.h2.Driver"
+    }
+  ]
+}
