@@ -168,7 +168,7 @@ kbd {
 .result-bar .status { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .result-bar .warn { color: var(--peach); }
 #result-actions { display: flex; align-items: center; gap: 6px; }
-#result-actions:empty, #result-actions.idle { display: none; }
+#result-actions:empty { display: none; }
 .select.small, .button.small { height: 26px; font-size: 13px; }
 .button.small { padding: 0 8px; gap: 5px; color: var(--subtext1); }
 .button.small svg { color: var(--overlay2); }
