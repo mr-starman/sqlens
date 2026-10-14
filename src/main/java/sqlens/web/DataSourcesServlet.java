@@ -40,6 +40,7 @@ public class DataSourcesServlet extends HttpServlet {
         body.put("driversDir", app.drivers().driversDir().toString());
         body.put("drivers", app.drivers().driverNames());
         body.put("driverJarErrors", app.drivers().jarProblems());
+        body.put("maxGridRows", app.config().maxGridRows());
         body.put("error", app.config().error());
         Json.send(response, HttpServletResponse.SC_OK, body);
     }

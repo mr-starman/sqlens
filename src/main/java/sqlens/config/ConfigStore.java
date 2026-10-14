@@ -28,12 +28,20 @@ public final class ConfigStore {
     private static final Logger LOG = Logger.getLogger(ConfigStore.class.getName());
     private static final Pattern PLACEHOLDER = Pattern.compile("\\$\\{([A-Za-z0-9_.]+)}");
 
+    /**
+     * Rows the result grid gets at most, whatever row limit is asked for. The
+     * browser holds the whole result in memory and draws every row, so "All"
+     * on a big table would freeze the tab. Export streams and is not capped.
+     */
+    public static final int DEFAULT_MAX_GRID_ROWS = 50_000;
+
     private final Path configFile;
     private final ObjectMapper mapper = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     private FileTime loadedModified;
     private List<DataSourceConfig> datasources = List.of();
+    private int maxGridRows = DEFAULT_MAX_GRID_ROWS;
     private String error;
 
     public ConfigStore(Path configFile) {
@@ -53,6 +61,12 @@ public final class ConfigStore {
         return datasources().stream().filter(ds -> ds.name().equals(name)).findFirst();
     }
 
+    /** The grid row cap from {@code settings.maxGridRows}; 0 means no cap. */
+    public synchronized int maxGridRows() {
+        reloadIfChanged();
+        return maxGridRows;
+    }
+
     /** The problem found while reading the config file, or null when it loaded fine. */
     public synchronized String error() {
         reloadIfChanged();
@@ -66,6 +80,7 @@ public final class ConfigStore {
             }
             loadedModified = null;
             datasources = List.of();
+            maxGridRows = DEFAULT_MAX_GRID_ROWS;
             error = "Config file not found: " + configFile;
             return;
         }
@@ -81,18 +96,34 @@ public final class ConfigStore {
         }
         loadedModified = modified;
         try {
-            datasources = parse(Files.readString(configFile));
+            ConfigFile file = mapper.readValue(Files.readString(configFile), ConfigFile.class);
+            datasources = toDataSources(file);
+            maxGridRows = maxGridRows(file);
             error = null;
             LOG.info("Loaded " + datasources.size() + " datasource(s) from " + configFile);
         } catch (IOException | IllegalArgumentException e) {
             datasources = List.of();
+            maxGridRows = DEFAULT_MAX_GRID_ROWS;
             error = "Invalid " + configFile.getFileName() + ": " + e.getMessage();
             LOG.warning(error);
         }
     }
 
     List<DataSourceConfig> parse(String json) throws IOException {
-        ConfigFile file = mapper.readValue(json, ConfigFile.class);
+        return toDataSources(mapper.readValue(json, ConfigFile.class));
+    }
+
+    private static int maxGridRows(ConfigFile file) {
+        if (file.settings == null || file.settings.maxGridRows == null) {
+            return DEFAULT_MAX_GRID_ROWS;
+        }
+        if (file.settings.maxGridRows < 0) {
+            throw new IllegalArgumentException("\"settings.maxGridRows\" cannot be negative");
+        }
+        return file.settings.maxGridRows;
+    }
+
+    private static List<DataSourceConfig> toDataSources(ConfigFile file) {
         List<DataSourceConfig> result = new ArrayList<>();
         Set<String> names = new HashSet<>();
         if (file.datasources == null) {
@@ -154,7 +185,13 @@ public final class ConfigStore {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     static final class ConfigFile {
+        public Settings settings;
         public List<RawDataSource> datasources;
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    static final class Settings {
+        public Integer maxGridRows;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
