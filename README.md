@@ -11,7 +11,8 @@ UI and CSV export come next.
 ## Requirements
 
 - Java 17 or newer
-- Tomcat 10.1 or newer (the app uses `jakarta.servlet`, so Tomcat 9 and older will not load it)
+- Tomcat 9 (the app uses the Servlet 4.0 `javax.servlet` API). To run it on Tomcat 10 or newer, drop the WAR in
+  `webapps-javaee/` instead of `webapps/`, and Tomcat converts it to `jakarta.servlet` on deploy
 - Maven 3.8+ to build
 
 ## Build
@@ -113,8 +114,8 @@ running as your own user, so `~/.sqlens` is your home's.
 ```sh
 # Java and Tomcat
 sudo apt install openjdk-17-jdk
-curl -LO https://archive.apache.org/dist/tomcat/tomcat-10/v10.1.30/bin/apache-tomcat-10.1.30.tar.gz
-tar xzf apache-tomcat-10.1.30.tar.gz && mv apache-tomcat-10.1.30 ~/tomcat
+curl -LO https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.96/bin/apache-tomcat-9.0.96.tar.gz
+tar xzf apache-tomcat-9.0.96.tar.gz && mv apache-tomcat-9.0.96 ~/tomcat
 
 # SQLens home
 mkdir -p ~/.sqlens/drivers
@@ -136,10 +137,10 @@ export SQLENS_HOME=/path/to/sqlens-home
 # or: export CATALINA_OPTS="$CATALINA_OPTS -Dsqlens.home=/path/to/sqlens-home"
 ```
 
-If you use the distro's `tomcat10` package instead, it runs as the `tomcat`
+If you use the distro's `tomcat9` package instead, it runs as the `tomcat`
 user, so the default home becomes that user's home rather than yours. Set
 `SQLENS_HOME` in the service's environment (for example
-`/etc/default/tomcat10`) to a folder the `tomcat` user can read. That package
+`/etc/default/tomcat9`) to a folder the `tomcat` user can read. That package
 runs as a systemd service, which WSL only supports when systemd is turned on,
 so the tarball setup above is usually easier.
 

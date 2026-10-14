@@ -1,6 +1,6 @@
 package sqlens.web;
 
-import jakarta.servlet.ServletContext;
+import javax.servlet.ServletContext;
 import sqlens.config.ConfigStore;
 import sqlens.config.SqlensHome;
 import sqlens.jdbc.DriverRegistry;
