@@ -19,6 +19,7 @@ import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.jar.JarFile;
 import java.util.stream.Stream;
 
 /**
@@ -40,6 +41,7 @@ public final class DriverRegistry implements AutoCloseable {
     private String loadedSignature;
     private URLClassLoader loader;
     private List<Driver> drivers = List.of();
+    private List<String> jarProblems = List.of();
 
     public DriverRegistry(Path driversDir) {
         this(driversDir, DriverRegistry.class.getClassLoader());
@@ -87,6 +89,12 @@ public final class DriverRegistry implements AutoCloseable {
         return connection;
     }
 
+    /** Driver jars that could not be opened, with the reason. */
+    public synchronized List<String> jarProblems() {
+        drivers();
+        return jarProblems;
+    }
+
     /** Names of the driver classes found, for display and troubleshooting. */
     public synchronized List<String> driverNames() {
         return drivers().stream().map(d -> d.getClass().getName()).distinct().sorted().toList();
@@ -102,7 +110,11 @@ public final class DriverRegistry implements AutoCloseable {
             Class<?> type = Class.forName(className, true, cl);
             return (Driver) type.getDeclaredConstructor().newInstance();
         } catch (ClassNotFoundException e) {
-            throw new SQLException("Driver class " + className + " not found. Put its jar in " + driversDir, e);
+            String problems;
+            synchronized (this) {
+                problems = jarProblems.isEmpty() ? "" : " Jars that could not be opened: " + String.join("; ", jarProblems);
+            }
+            throw new SQLException("Driver class " + className + " not found. Put its jar in " + driversDir + "." + problems, e);
         } catch (ReflectiveOperationException | ClassCastException e) {
             throw new SQLException("Cannot load driver class " + className + ": " + e, e);
         }
@@ -118,7 +130,18 @@ public final class DriverRegistry implements AutoCloseable {
 
     private void reload(String signature) {
         closeLoader();
-        List<Path> jars = jars();
+        // The class loader skips jars it cannot open without a word, so check them first.
+        List<Path> jars = new ArrayList<>();
+        List<String> problems = new ArrayList<>();
+        for (Path jar : jars()) {
+            try (JarFile ignored = new JarFile(jar.toFile())) {
+                jars.add(jar);
+            } catch (IOException | SecurityException e) {
+                problems.add(jar.getFileName() + " (" + e + ")");
+                LOG.warning("Cannot open driver jar " + jar + ": " + e);
+            }
+        }
+        jarProblems = List.copyOf(problems);
         URL[] urls = jars.stream().map(DriverRegistry::toUrl).toArray(URL[]::new);
         loader = new URLClassLoader("sqlens-drivers", urls, parent);
         List<Driver> found = new ArrayList<>();
@@ -155,13 +178,14 @@ public final class DriverRegistry implements AutoCloseable {
         }
     }
 
-    /** Changes when a jar in the folder is added, removed or rewritten. */
+    /** Changes when a jar in the folder is added, removed, rewritten or becomes (un)readable. */
     private String signature() {
         StringBuilder sb = new StringBuilder();
         for (Path jar : jars()) {
             sb.append(jar.getFileName()).append(':');
             try {
-                sb.append(Files.size(jar)).append(':').append(Files.getLastModifiedTime(jar).toMillis());
+                sb.append(Files.size(jar)).append(':').append(Files.getLastModifiedTime(jar).toMillis())
+                        .append(':').append(Files.isReadable(jar));
             } catch (IOException e) {
                 sb.append('?');
             }
@@ -200,6 +224,7 @@ public final class DriverRegistry implements AutoCloseable {
         }
         loader = null;
         drivers = List.of();
+        jarProblems = List.of();
         loadedSignature = null;
     }
 

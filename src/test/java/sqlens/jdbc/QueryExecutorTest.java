@@ -62,6 +62,35 @@ class QueryExecutorTest {
     }
 
     @Test
+    void reportsJarsThatCannotBeOpened() throws Exception {
+        Files.writeString(registry.driversDir().resolve("broken.jar"), "not a zip");
+        assertEquals(1, registry.jarProblems().size(), registry.jarProblems().toString());
+        assertTrue(registry.jarProblems().get(0).startsWith("broken.jar"));
+        assertTrue(registry.driverNames().contains("org.h2.Driver"));
+        SQLException e = assertThrows(SQLException.class, () -> executor.execute(
+                new DataSourceConfig("x", null, "jdbc:x:y", null, null, "com.example.Missing", Map.of(), false, 0),
+                "select 1", 10, new Collected()));
+        assertTrue(e.getMessage().contains("broken.jar"), e.getMessage());
+    }
+
+    @Test
+    void reloadsWhenJarBecomesReadable() throws Exception {
+        Path jar;
+        try (var files = Files.list(registry.driversDir())) {
+            jar = files.findFirst().orElseThrow();
+        }
+        registry.close();
+        assertTrue(jar.toFile().setReadable(false, false));
+        try {
+            org.junit.jupiter.api.Assumptions.assumeFalse(Files.isReadable(jar), "running as root, cannot make the jar unreadable");
+            assertFalse(registry.driverNames().contains("org.h2.Driver"));
+        } finally {
+            assertTrue(jar.toFile().setReadable(true, false));
+        }
+        assertTrue(registry.driverNames().contains("org.h2.Driver"));
+    }
+
+    @Test
     void limitsRowsAndReportsTruncation() throws Exception {
         Collected r = run("select id, name from t order by id", 10);
         assertEquals(List.of("ID", "NAME"), r.columns.stream().map(ColumnInfo::name).toList());
