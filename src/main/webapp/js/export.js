@@ -116,7 +116,7 @@ export function setupExport({ container, notice, maxRows, store }) {
       }
       const name = fileName(response.headers.get('Content-Disposition')) || `${datasource}.csv`;
       download(blob, name);
-      showNote(`Saved ${name} (${formatSize(blob.size)})`);
+      showNote(`Download started: ${name} (${formatSize(blob.size)})`);
     } catch (e) {
       clearNote();
       if (e.name !== 'AbortError') showError(`Export failed: ${e.message}`);
