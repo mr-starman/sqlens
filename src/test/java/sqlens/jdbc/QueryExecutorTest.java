@@ -146,6 +146,19 @@ class QueryExecutorTest {
     }
 
     @Test
+    void readOnlyDatasourceRejectsWritesBeforeRunningThem() throws Exception {
+        DataSourceConfig readOnly = new DataSourceConfig("ro", null, ds.url(), "sa", "", null, Map.of(), true, 0);
+        SQLException e = assertThrows(SQLException.class,
+                () -> executor.execute(readOnly, "delete from t", 10, new Collected()));
+        assertEquals(ReadOnlyGuard.SQL_STATE, e.getSQLState());
+        assertEquals(25L, run("select count(*) from t", 10).rows.get(0)[0]);
+
+        Collected r = new Collected();
+        executor.execute(readOnly, "select count(*) from t", 10, r);
+        assertEquals(25L, r.rows.get(0)[0]);
+    }
+
+    @Test
     void sqlErrorsSurface() {
         SQLException e = assertThrows(SQLException.class, () -> run("select nope from t", 10));
         assertTrue(QueryExecutor.describe(e).contains("NOPE"), QueryExecutor.describe(e));

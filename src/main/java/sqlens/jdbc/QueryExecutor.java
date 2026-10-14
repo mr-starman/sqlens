@@ -32,6 +32,9 @@ public final class QueryExecutor {
      * @param maxRows rows to return, or {@link #ALL_ROWS}
      */
     public void execute(DataSourceConfig ds, String sql, int maxRows, ResultHandler handler) throws Exception {
+        if (ds.readOnly()) {
+            ReadOnlyGuard.check(ds.name(), sql);
+        }
         try (Connection connection = drivers.connect(ds);
              Statement statement = connection.createStatement()) {
             if (ds.queryTimeoutSeconds() > 0) {
