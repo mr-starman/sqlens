@@ -144,7 +144,9 @@ user, so the default home becomes that user's home rather than yours. Set
 runs as a systemd service, which WSL only supports when systemd is turned on,
 so the tarball setup above is usually easier.
 
-To redeploy a new build, copy the WAR over the old one; Tomcat reloads it.
+To redeploy a new build, copy the WAR over the old one; Tomcat reloads it. The
+browser picks up the new UI on the next page load, since SQLens tells it to
+check for changed files every time.
 
 ## Using the UI
 

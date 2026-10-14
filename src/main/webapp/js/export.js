@@ -43,12 +43,17 @@ export function setupExport({ container, notice, maxRows, store }) {
     const hasRows = Boolean(r && Array.isArray(r.columns) && r.columns.length > 0);
     copy.disabled = !hasRows;
     exportCsv.disabled = !hasRows && !exporting;
-    if (!exporting) container.classList.toggle('idle', !hasRows);
     if (hasRows) {
       const n = r.rows.length;
       copy.title = `Copy ${n.toLocaleString()} row${n === 1 ? '' : 's'} as tab-separated text, for pasting into Excel`;
+    } else {
+      copy.title = 'Run a query to copy its rows';
     }
-    if (!exporting) exportCsv.title = `Download as CSV. Runs the query again with the row limit ${limitText()}.`;
+    if (!exporting) {
+      exportCsv.title = hasRows
+        ? `Download as CSV. Runs the query again with the row limit ${limitText()}.`
+        : 'Run a query to export its result';
+    }
   }
 
   function limitText() {
