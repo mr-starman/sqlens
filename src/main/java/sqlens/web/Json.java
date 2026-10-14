@@ -36,8 +36,9 @@ final class Json {
     }
 
     /**
-     * Writes a converted cell value. Numbers that JavaScript would round
-     * (big longs, high precision decimals) are written as strings.
+     * Writes a converted cell value. Numbers that JavaScript would round or
+     * reformat (big integers, and all decimals so their scale is kept) are
+     * written as strings.
      */
     static void writeValue(JsonGenerator gen, Object value) throws IOException {
         if (value == null) {
@@ -66,12 +67,8 @@ final class Json {
                 gen.writeString(bi.toString());
             }
         } else if (value instanceof BigDecimal bd) {
-            BigDecimal stripped = bd.stripTrailingZeros();
-            if (stripped.precision() <= 15) {
-                gen.writeNumber(bd.toPlainString());
-            } else {
-                gen.writeString(bd.toPlainString());
-            }
+            // Always a string: as a JSON number, 12.50 would arrive as 12.5.
+            gen.writeString(bd.toPlainString());
         } else if (value instanceof Number n) {
             gen.writeString(n.toString());
         } else {
