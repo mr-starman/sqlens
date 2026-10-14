@@ -75,6 +75,19 @@ The resolved paths are logged at startup and shown by `GET /api/datasources`.
 environment variable or Java system property of that name, so secrets can stay
 out of the file.
 
+An optional top-level `settings` object holds app-wide settings:
+
+```json
+{
+  "settings": { "maxGridRows": 50000 },
+  "datasources": [ ... ]
+}
+```
+
+| Setting       | Default | Meaning |
+|---------------|---------|---------|
+| `maxGridRows` | 50000   | Most rows the result grid gets, even with **Rows** set to All. The browser keeps the whole grid in memory, so this stops a big "All" from freezing the tab. Export is not capped. `0` turns the cap off |
+
 The file is re-read whenever it changes, so there is no need to restart Tomcat
 after editing it. If it is missing or invalid, the API reports why in the
 `error` field.
@@ -162,7 +175,8 @@ Open <http://localhost:8080/sqlens/>.
   Select a block explicitly to run something that contains blank lines or
   inner semicolons, such as a PL/SQL block.
 - **Rows** limits the result: 10 (the default), 100, 1000, 10000 or All. The
-  status bar says when more rows were available.
+  status bar says when more rows were available. All still stops at
+  `maxGridRows` (50,000 by default) in the grid; use Export for more.
 - **Cancel** stops waiting for a running query. The database may keep working
   on it until it finishes or hits the datasource's `queryTimeoutSeconds`.
 - The sun/moon button switches between the Catppuccin Latte (light) and Mocha
@@ -226,6 +240,7 @@ All endpoints return JSON. The UI and export features build on these.
   "driversDir": "/home/me/.sqlens/drivers",
   "drivers": ["org.postgresql.Driver"],
   "driverJarErrors": [],
+  "maxGridRows": 50000,
   "error": null
 }
 ```
@@ -242,7 +257,8 @@ Request:
 ```
 
 `maxRows` is the row limit: any positive number (the UI offers 10, 100, 1000
-and 10000), or `0` / `"all"` for no limit. It defaults to 10. One statement is
+and 10000), or `0` / `"all"` for no limit. It defaults to 10. Either way it is
+lowered to `maxGridRows` when that is set. One statement is
 run per request; a trailing `;` is removed (but kept after `END`, for PL/SQL
 blocks).
 
@@ -258,6 +274,7 @@ Response for a query:
   "rows": [[1, "Ada"], [2, "Linus"]],
   "rowCount": 2,
   "truncated": true,
+  "cappedAt": null,
   "updateCount": null,
   "elapsedMs": 12,
   "error": null
@@ -265,6 +282,8 @@ Response for a query:
 ```
 
 - `truncated` is true when there were more rows than `maxRows`.
+- `cappedAt` is set to `maxGridRows` when that cap, rather than the requested
+  `maxRows`, cut the result short.
 - Values are `null`, booleans, numbers or strings. Integers too large for a
   JavaScript number, and all `DECIMAL`/`NUMERIC` values, come back as
   strings, so `12.50` keeps its trailing zero. Dates look like `2024-05-01` and timestamps like

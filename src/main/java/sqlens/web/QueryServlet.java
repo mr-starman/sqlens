@@ -25,7 +25,7 @@ import java.util.logging.Logger;
  *
  * <pre>
  * {"datasource": "...", "columns": [{"name", "jdbcType", "dbType", "numeric"}],
- *  "rows": [[...], ...], "rowCount": 10, "truncated": true,
+ *  "rows": [[...], ...], "rowCount": 10, "truncated": true, "cappedAt": null,
  *  "updateCount": null, "elapsedMs": 12, "error": null}
  * </pre>
  *
@@ -57,9 +57,11 @@ public class QueryServlet extends HttpServlet {
             return;
         }
 
-        JsonResultWriter writer = new JsonResultWriter(response, query.datasource());
+        int cap = app.config().maxGridRows();
+        int maxRows = gridRows(query.maxRows(), cap);
+        JsonResultWriter writer = new JsonResultWriter(response, query.datasource(), maxRows != query.maxRows() ? cap : null);
         try {
-            app.executor().execute(ds.get(), query.sql(), query.maxRows(), writer);
+            app.executor().execute(ds.get(), query.sql(), maxRows, writer);
         } catch (Exception e) {
             LOG.log(Level.FINE, "Query failed", e);
             if (writer.started) {
@@ -68,6 +70,14 @@ public class QueryServlet extends HttpServlet {
                 sendQueryError(response, e);
             }
         }
+    }
+
+    /** The row limit to use: the one asked for, lowered to the grid cap when there is one. */
+    static int gridRows(int requested, int cap) {
+        if (cap <= 0) {
+            return requested;
+        }
+        return requested == QueryExecutor.ALL_ROWS ? cap : Math.min(requested, cap);
     }
 
     private static void sendQueryError(HttpServletResponse response, Exception e) throws IOException {
@@ -85,6 +95,7 @@ public class QueryServlet extends HttpServlet {
 
         private final HttpServletResponse response;
         private final String datasource;
+        private final Integer cappedAt;
         private final long startNanos = System.nanoTime();
         private JsonGenerator gen;
         private boolean started;
@@ -92,9 +103,10 @@ public class QueryServlet extends HttpServlet {
         private boolean finished;
         private Long updateCount;
 
-        JsonResultWriter(HttpServletResponse response, String datasource) {
+        JsonResultWriter(HttpServletResponse response, String datasource, Integer cappedAt) {
             this.response = response;
             this.datasource = datasource;
+            this.cappedAt = cappedAt;
         }
 
         private void start(List<ColumnInfo> columns) throws IOException {
@@ -135,6 +147,11 @@ public class QueryServlet extends HttpServlet {
             closeRows();
             gen.writeNumberField("rowCount", rowCount);
             gen.writeBooleanField("truncated", truncated);
+            if (truncated && cappedAt != null) {
+                gen.writeNumberField("cappedAt", cappedAt);
+            } else {
+                gen.writeNullField("cappedAt");
+            }
             if (updateCount != null) {
                 gen.writeNumberField("updateCount", updateCount);
             } else {

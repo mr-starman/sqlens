@@ -75,6 +75,25 @@ class ConfigStoreTest {
     }
 
     @Test
+    void readsGridRowCap() throws Exception {
+        Path file = dir.resolve("datasources.json");
+        ConfigStore store = new ConfigStore(file);
+        assertEquals(ConfigStore.DEFAULT_MAX_GRID_ROWS, store.maxGridRows());
+
+        Files.writeString(file, "{\"datasources\": []}");
+        assertEquals(ConfigStore.DEFAULT_MAX_GRID_ROWS, store.maxGridRows());
+
+        Files.writeString(file, "{\"settings\": {\"maxGridRows\": 0}, \"datasources\": []}");
+        Files.setLastModifiedTime(file, FileTime.from(Instant.now().plusSeconds(5)));
+        assertEquals(0, store.maxGridRows());
+
+        Files.writeString(file, "{\"settings\": {\"maxGridRows\": -1}, \"datasources\": []}");
+        Files.setLastModifiedTime(file, FileTime.from(Instant.now().plusSeconds(10)));
+        assertEquals(ConfigStore.DEFAULT_MAX_GRID_ROWS, store.maxGridRows());
+        assertTrue(store.error().contains("maxGridRows"), store.error());
+    }
+
+    @Test
     void expandsPlaceholders() {
         System.setProperty("sqlens.test.secret", "s3cret");
         try {

@@ -168,7 +168,11 @@ function showResult(body, clientMs) {
     clearResult();
     grid = renderGrid(ui.result, body);
     const parts = [`${body.rowCount.toLocaleString()} row${body.rowCount === 1 ? '' : 's'}`];
-    if (body.truncated) parts.push('<warn>more rows available, raise the row limit to see them');
+    if (body.truncated && body.cappedAt) {
+      parts.push(`<warn>the grid shows at most ${body.cappedAt.toLocaleString()} rows, use Export for the rest`);
+    } else if (body.truncated) {
+      parts.push('<warn>more rows available, raise the row limit to see them');
+    }
     parts.push(elapsed);
     if (body.error) {
       parts.push('<warn>stopped early');
