@@ -26,7 +26,7 @@ class ConfigStoreTest {
         Files.writeString(file, """
                 {"datasources": [
                   {"name": "pg", "url": "jdbc:postgresql://localhost/app", "user": "app", "password": "pw",
-                   "properties": {"ssl": "false"}, "readOnly": true, "queryTimeoutSeconds": 30, "extra": 1},
+                   "properties": {"ssl": "false"}, "readOnly": true, "queryTimeoutSeconds": 30},
                   {"name": "h2", "url": "jdbc:h2:mem:x", "driver": "org.h2.Driver"}
                 ]}
                 """);
@@ -91,6 +91,35 @@ class ConfigStoreTest {
         Files.setLastModifiedTime(file, FileTime.from(Instant.now().plusSeconds(10)));
         assertEquals(ConfigStore.DEFAULT_MAX_GRID_ROWS, store.maxGridRows());
         assertTrue(store.error().contains("maxGridRows"), store.error());
+    }
+
+    @Test
+    void rejectsUnknownKeysWithAHint() throws Exception {
+        Path file = dir.resolve("datasources.json");
+        Files.writeString(file, """
+                {"setings": {},
+                 "datasources": [
+                   {"name": "chinook", "url": "jdbc:ctree:6597@localhost:chinook", "readonly": true},
+                   {"url": "jdbc:x", "pasword": "x", "colour": "blue"}
+                 ]}
+                """);
+        ConfigStore store = new ConfigStore(file);
+        assertTrue(store.datasources().isEmpty());
+        String error = store.error();
+        assertTrue(error.contains("unknown field \"readonly\" in datasource \"chinook\", did you mean \"readOnly\"?"), error);
+        assertTrue(error.contains("unknown field \"setings\", did you mean \"settings\"?"), error);
+        assertTrue(error.contains("unknown field \"pasword\" in datasource #2, did you mean \"password\"?"), error);
+        assertTrue(error.contains("unknown field \"colour\" in datasource #2 (known fields: name,"), error);
+    }
+
+    @Test
+    void reportsWrongTypesWithTheirPath() throws Exception {
+        Path file = dir.resolve("datasources.json");
+        Files.writeString(file, "{\"datasources\": [{\"name\": \"a\", \"url\": \"jdbc:x\", \"readOnly\": \"maybe\"}]}");
+        ConfigStore store = new ConfigStore(file);
+        assertTrue(store.datasources().isEmpty());
+        assertTrue(store.error().contains("\"datasources[0].readOnly\""), store.error());
+        assertFalse(store.error().contains("REDACTED"), store.error());
     }
 
     @Test
