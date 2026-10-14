@@ -1,0 +1,20 @@
+{
+  "name": "sqlens-frontend-vendor",
+  "private": true,
+  "description": "Builds the vendored CodeMirror bundle and font for the SQLens web UI. Not needed for a normal Maven build.",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "@codemirror/autocomplete": "^6.18.0",
+    "@codemirror/commands": "^6.6.0",
+    "@codemirror/lang-sql": "^6.8.0",
+    "@codemirror/language": "^6.10.0",
+    "@codemirror/search": "^6.5.0",
+    "@codemirror/state": "^6.4.0",
+    "@codemirror/view": "^6.33.0",
+    "@fontsource-variable/jetbrains-mono": "^5.1.0",
+    "@lezer/highlight": "^1.2.0",
+    "esbuild": "^0.25.12"
+  }
+}

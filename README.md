@@ -3,8 +3,8 @@
 A small SQL query tool for development boxes. A Java webapp that runs on Tomcat
 and can query any database that has a JDBC driver.
 
-This is the backend: datasource config, driver loading and a JSON API. The web
-UI and CSV export come next.
+It has a web UI with a SQL editor and a result grid, backed by a small JSON
+API. CSV export comes next.
 
 > No authentication. SQLens is meant for a local devbox; don't expose it to a network you don't trust.
 
@@ -146,6 +146,35 @@ so the tarball setup above is usually easier.
 
 To redeploy a new build, copy the WAR over the old one; Tomcat reloads it.
 
+## Using the UI
+
+Open <http://localhost:8080/sqlens/>.
+
+- Pick a datasource at the top. Its description and JDBC URL are shown next to
+  it, and the editor's keyword highlighting follows the database type in the
+  URL (PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, SQLite, else standard
+  SQL). The reload button re-reads the list after you edit `datasources.json`.
+- **Ctrl+Enter** (⌘+Enter on a Mac) or **Run** runs the selected text. With
+  nothing selected it runs the statement under the cursor: statements end at a
+  `;` or a blank line, so a scratchpad of queries works without semicolons.
+  Select a block explicitly to run something that contains blank lines or
+  inner semicolons, such as a PL/SQL block.
+- **Rows** limits the result: 10 (the default), 100, 1000, 10000 or All. The
+  status bar says when more rows were available.
+- **Cancel** stops waiting for a running query. The database may keep working
+  on it until it finishes or hits the datasource's `queryTimeoutSeconds`.
+- The sun/moon button switches between the Catppuccin Latte (light) and Mocha
+  (dark) themes. The first visit follows the system's light or dark setting.
+- Drag the bar between the editor and the results to resize them, and drag a
+  column header's right edge to resize a column.
+
+The editor text, the chosen datasource, the theme and the editor height are
+remembered in the browser's local storage.
+
+The editor font is JetBrains Mono, bundled in the WAR. If the browser can't
+load it, it falls back to Cascadia Code, Fira Code, Source Code Pro, SF Mono,
+Menlo, Consolas, DejaVu Sans Mono and finally the default monospace font.
+
 ## API
 
 All endpoints return JSON. The UI and export features build on these.
@@ -239,4 +268,31 @@ Tomcat loads a dropped-in driver.
   `ResultHandler`, so other outputs such as CSV export can stream the same
   result.
 - `sqlens.web`: servlets for the JSON API
-- `src/main/webapp`: static web content
+- `src/main/webapp`: the web UI, plain ES modules with no build step:
+  - `js/app.js`: toolbar, running queries, status bar
+  - `js/editor.js`: the CodeMirror editor, its theme and syntax colours
+  - `js/statement.js`: finds the statement under the cursor
+  - `js/grid.js`: the result grid; only the rows in view are in the DOM
+  - `js/results.js`: the latest request and response, with an `onResult`
+    listener, for features that act on the result such as export
+  - `css/sqlens.css`: layout and the Catppuccin Latte and Mocha palettes
+  - `vendor/`: generated, see below
+
+Buttons that act on the current result belong in `#result-actions` in the
+status bar, which stays hidden while empty.
+
+### Vendored frontend libraries
+
+The UI loads nothing from the internet. CodeMirror is bundled into
+`src/main/webapp/vendor/codemirror.js` and the JetBrains Mono font is copied
+next to it; both are committed, so `mvn package` needs no Node.js. To update
+them, change the versions in `frontend/package.json`, then:
+
+```sh
+cd frontend
+npm install
+npm run build
+```
+
+and commit the changed files in `src/main/webapp/vendor`. To use another
+CodeMirror export in the UI, add it to `frontend/codemirror-entry.js` first.
