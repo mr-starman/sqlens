@@ -68,7 +68,7 @@ The resolved paths are logged at startup and shown by `GET /api/datasources`.
 | `user`, `password`    | no       | Credentials |
 | `driver`              | no       | Driver class name. Usually not needed: the driver is picked from the URL |
 | `properties`          | no       | Extra JDBC connection properties, as string pairs |
-| `readOnly`            | no       | `true` opens the connection in read-only mode (support depends on the driver) |
+| `readOnly`            | no       | `true` blocks writes, see [Read-only datasources](#read-only-datasources) |
 | `queryTimeoutSeconds` | no       | Statement timeout; absent or `0` means none |
 
 `${NAME}` in `url`, `user`, `password` and `properties` is replaced with the
@@ -91,6 +91,29 @@ An optional top-level `settings` object holds app-wide settings:
 The file is re-read whenever it changes, so there is no need to restart Tomcat
 after editing it. If it is missing or invalid, the API reports why in the
 `error` field.
+
+### Read-only datasources
+
+With `"readOnly": true`, SQLens does two things:
+
+1. It checks each statement before running it and rejects anything that is
+   not a plain read. A statement must start with `SELECT`, `WITH`, `SHOW`,
+   `DESCRIBE`, `EXPLAIN` or `VALUES`, must be a single statement, and must not
+   contain `INSERT`, `UPDATE`, `DELETE`, `MERGE`, `INTO`, `CREATE`, `ALTER`,
+   `DROP`, `TRUNCATE`, `GRANT`, `REVOKE`, `CALL`, `EXEC` and similar words
+   outside strings, quoted names and comments. That also blocks
+   `select ... for update`, `select ... into` and data-modifying `WITH`
+   clauses. The error has SQLSTATE `25006`.
+2. It asks the driver for a read-only connection. Some drivers enforce this
+   (MySQL, MariaDB), others ignore it (most others). For PostgreSQL add
+   `"properties": { "readOnlyMode": "always" }` to make it stick, since SQLens
+   runs with auto-commit.
+
+The check is a keyword scan, not a SQL parser, so it can be wrong in both
+directions. It cannot see what a function or procedure called from a
+`SELECT` does, and a MySQL string with a backslash-escaped quote
+(`'don\'t delete'`) can be rejected. The only real guarantee is a database
+user that can only read.
 
 ### JDBC drivers
 
