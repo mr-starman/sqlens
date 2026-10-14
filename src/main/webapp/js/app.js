@@ -1,12 +1,14 @@
 import { createEditor, dialectFor } from './editor.js';
 import { renderGrid } from './grid.js';
 import { publishResult } from './results.js';
+import { setupExport } from './export.js';
 
 const $ = id => document.getElementById(id);
 const ui = {
   datasource: $('datasource'), reload: $('reload'), dsInfo: $('ds-info'), maxRows: $('max-rows'),
   run: $('run'), runLabel: $('run').querySelector('.label'), runKey: $('run-key'), theme: $('theme'),
   editor: $('editor'), splitter: $('splitter'), status: $('status'), notice: $('notice'), result: $('result'),
+  resultActions: $('result-actions'),
 };
 
 const store = {
@@ -271,6 +273,8 @@ ui.splitter.addEventListener('pointerdown', e => {
   ui.splitter.addEventListener('pointermove', move);
   ui.splitter.addEventListener('pointerup', up);
 });
+
+setupExport({ container: ui.resultActions, notice: ui.notice, maxRows: ui.maxRows, store });
 
 loadDatasources();
 editor.focus();

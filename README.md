@@ -3,8 +3,8 @@
 A small SQL query tool for development boxes. A Java webapp that runs on Tomcat
 and can query any database that has a JDBC driver.
 
-It has a web UI with a SQL editor and a result grid, backed by a small JSON
-API. CSV export comes next.
+It has a web UI with a SQL editor, a result grid, CSV export and copy to
+clipboard, backed by a small JSON API.
 
 > No authentication. SQLens is meant for a local devbox; don't expose it to a network you don't trust.
 
@@ -168,8 +168,41 @@ Open <http://localhost:8080/sqlens/>.
 - Drag the bar between the editor and the results to resize them, and drag a
   column header's right edge to resize a column.
 
-The editor text, the chosen datasource, the theme and the editor height are
-remembered in the browser's local storage.
+- **Copy** puts the rows in the grid on the clipboard as tab-separated text,
+  with a header row, so they paste into Excel as cells.
+- **Export CSV** downloads the result as a CSV file. It runs the query that
+  filled the grid again, with the row limit currently picked under **Rows**.
+  So you can look at 10 rows, switch to All and export everything. Big
+  exports stream from the database, and **Cancel export** stops one.
+- The picker next to them sets the number style for Excel, used by both Copy
+  and Export:
+  - **Comma, 1.5**: fields separated by commas, decimal point. For Excel with
+    US or UK regional settings.
+  - **Semicolon, 1,5**: fields separated by semicolons, decimal comma. For
+    Excel with most European regional settings (Swedish, German, French...).
+
+  The first visit picks the one that matches the browser's language. If Excel
+  puts a whole row in one column, switch to the other style.
+
+The editor text, the chosen datasource, the theme, the editor height and the
+number style are remembered in the browser's local storage.
+
+### The CSV file
+
+The CSV is made to open in Excel with a double-click:
+
+- UTF-8 with a byte order mark, so Excel reads accented letters correctly.
+- CRLF line ends. Fields holding the separator, a quote, a line break or
+  leading or trailing spaces are quoted, with quotes doubled.
+- A header row with the column names. NULL is an empty field.
+- Numbers are written in full, never in exponent form, and decimals keep the
+  scale the database returned (`12.50`). Dates are `2024-05-01` and timestamps
+  `2024-05-01 13:45:00`, which Excel recognises. Booleans are `TRUE`/`FALSE`.
+
+Excel still applies its own guesses when it opens a CSV: text such as
+`00123` loses its leading zeros, and numbers longer than 15 digits lose
+precision. Use Excel's *Data → From Text/CSV* import to choose column types
+when that matters.
 
 The editor font is JetBrains Mono, bundled in the WAR. If the browser can't
 load it, it falls back to Cascadia Code, Fira Code, Source Code Pro, SF Mono,
@@ -230,9 +263,9 @@ Response for a query:
 ```
 
 - `truncated` is true when there were more rows than `maxRows`.
-- Values are `null`, booleans, numbers or strings. Numbers JavaScript cannot
-  hold exactly (very large integers, high-precision decimals) come back as
-  strings. Dates look like `2024-05-01` and timestamps like
+- Values are `null`, booleans, numbers or strings. Integers too large for a
+  JavaScript number, and all `DECIMAL`/`NUMERIC` values, come back as
+  strings, so `12.50` keeps its trailing zero. Dates look like `2024-05-01` and timestamps like
   `2024-05-01 13:45:00`. Binary values are hex (`0xCAFE`), and large text and
   binary values are cut at 64K characters.
 - Rows are streamed as they are read, so `"all"` on a big table does not need
@@ -251,6 +284,27 @@ Errors before any row is sent return HTTP 400 (404 for an unknown datasource):
 If a failure happens while rows are streaming, the response is still HTTP 200,
 the rows received so far are kept, and `error` holds the message.
 
+### `POST /api/export`
+
+Runs one statement like `/api/query` and returns the result as a file
+download (`Content-Disposition: attachment`).
+
+```json
+{ "datasource": "local-postgres", "sql": "select * from customer", "maxRows": "all",
+  "format": "csv", "delimiter": ";", "decimalSeparator": "," }
+```
+
+`datasource`, `sql` and `maxRows` work as for `/api/query`. `format` is `csv`
+(the only format so far), `delimiter` is any single character or `tab`, and
+`decimalSeparator` is `.` or `,`. Those three are optional and default to CSV
+with a comma and a decimal point.
+
+Errors before the file starts return the same JSON errors as `/api/query`,
+including for a statement that returns no rows. Note that such a statement
+has already run by then. If the query fails after rows were sent, the
+response is cut off so the download fails instead of saving part of the
+result.
+
 ## Development
 
 ```sh
@@ -265,16 +319,20 @@ Tomcat loads a dropped-in driver.
 - `sqlens.config`: home folder lookup and `datasources.json` loading
 - `sqlens.jdbc`: driver loading (`DriverRegistry`), query execution
   (`QueryExecutor`) and value conversion. Results are pushed to a
-  `ResultHandler`, so other outputs such as CSV export can stream the same
-  result.
-- `sqlens.web`: servlets for the JSON API
+  `ResultHandler`, so the JSON API and exports stream the same result.
+- `sqlens.export`: export formats. An `ExportFormat` turns a result into a
+  file by returning a `ResultHandler`; `CsvFormat` is the only one so far. To
+  add a format, implement `ExportFormat` and register it in `ExportFormats`,
+  then offer it in `js/export.js`.
+- `sqlens.web`: servlets for the JSON API and export
 - `src/main/webapp`: the web UI, plain ES modules with no build step:
   - `js/app.js`: toolbar, running queries, status bar
   - `js/editor.js`: the CodeMirror editor, its theme and syntax colours
   - `js/statement.js`: finds the statement under the cursor
   - `js/grid.js`: the result grid; only the rows in view are in the DOM
   - `js/results.js`: the latest request and response, with an `onResult`
-    listener, for features that act on the result such as export
+    listener, for features that act on the result
+  - `js/export.js`: Copy, Export CSV and the number style picker
   - `css/sqlens.css`: layout and the Catppuccin Latte and Mocha palettes
   - `vendor/`: generated, see below
 

@@ -167,8 +167,15 @@ kbd {
 }
 .result-bar .status { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .result-bar .warn { color: var(--peach); }
-#result-actions { display: flex; gap: 6px; }
-#result-actions:empty { display: none; }
+#result-actions { display: flex; align-items: center; gap: 6px; }
+#result-actions:empty, #result-actions.idle { display: none; }
+.select.small, .button.small { height: 26px; font-size: 13px; }
+.button.small { padding: 0 8px; gap: 5px; color: var(--subtext1); }
+.button.small svg { color: var(--overlay2); }
+.button.small.busy { border-color: var(--peach); color: var(--peach); }
+.button.small.busy svg { color: var(--peach); }
+.action-note { color: var(--green); opacity: 0; transition: opacity 0.2s; white-space: nowrap; }
+.action-note.shown { opacity: 1; }
 #notice .message { margin-bottom: 0; }
 
 .spinner {
