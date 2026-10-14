@@ -38,6 +38,21 @@ export function setupExport({ container, notice, maxRows, store }) {
 
   let exporting = null;
 
+  // Alt+Shift (Option+Shift on a Mac) avoids the browser's own Ctrl+Shift
+  // shortcuts, and Ctrl+Alt, which is AltGr on many European keyboards.
+  const isMac = /Mac|iPhone|iPad/.test(navigator.platform);
+  const shortcut = key => (isMac ? `⌥⇧${key}` : `Alt+Shift+${key}`);
+  const shortcuts = { KeyC: copy, KeyE: exportCsv };
+  // Capture phase, so the editor never sees the key (Option+Shift+C would type Ç on a Mac).
+  document.addEventListener('keydown', e => {
+    if (!e.altKey || !e.shiftKey || e.ctrlKey || e.metaKey) return;
+    const target = shortcuts[e.code];
+    if (!target) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (!target.disabled) target.click();
+  }, true);
+
   function update() {
     const r = latest.response;
     const hasRows = Boolean(r && Array.isArray(r.columns) && r.columns.length > 0);
@@ -45,14 +60,14 @@ export function setupExport({ container, notice, maxRows, store }) {
     exportCsv.disabled = !hasRows && !exporting;
     if (hasRows) {
       const n = r.rows.length;
-      copy.title = `Copy ${n.toLocaleString()} row${n === 1 ? '' : 's'} as tab-separated text, for pasting into Excel`;
+      copy.title = `Copy ${n.toLocaleString()} row${n === 1 ? '' : 's'} as tab-separated text, for pasting into Excel (${shortcut('C')})`;
     } else {
-      copy.title = 'Run a query to copy its rows';
+      copy.title = `Run a query to copy its rows (${shortcut('C')})`;
     }
     if (!exporting) {
       exportCsv.title = hasRows
-        ? `Download as CSV. Runs the query again with the row limit ${limitText()}.`
-        : 'Run a query to export its result';
+        ? `Download as CSV. Runs the query again with the row limit ${limitText()}. (${shortcut('E')})`
+        : `Run a query to export its result (${shortcut('E')})`;
     }
   }
 
@@ -91,7 +106,7 @@ export function setupExport({ container, notice, maxRows, store }) {
 
     exporting = new AbortController();
     setLabel(exportCsv, 'Cancel export');
-    exportCsv.title = 'Stop the export';
+    exportCsv.title = `Stop the export (${shortcut('E')})`;
     exportCsv.classList.add('busy');
     showNote(`Exporting (${limitText()} rows)…`, true);
     try {

@@ -213,6 +213,8 @@ Open <http://localhost:8080/sqlens/>.
   filled the grid again, with the row limit currently picked under **Rows**.
   So you can look at 10 rows, switch to All and export everything. Big
   exports stream from the database, and **Cancel export** stops one.
+- Shortcuts: **Alt+Shift+C** copies and **Alt+Shift+E** exports (⌥⇧C and
+  ⌥⇧E on a Mac). They work anywhere on the page, including in the editor.
 - The picker next to them sets the number style for Excel, used by both Copy
   and Export:
   - **Comma, 1.5**: fields separated by commas, decimal point. For Excel with
