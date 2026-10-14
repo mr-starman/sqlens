@@ -1,7 +1,9 @@
 # SQLens
 
 A small SQL query tool for development boxes. A Java webapp that runs on Tomcat
-and can query any database that has a JDBC driver.
+and is used mainly with FairCom **c-treeRTG**, but it should work with any
+database that has a JDBC driver. The examples below use c-treeRTG; the
+[JDBC drivers](#jdbc-drivers) section lists other databases.
 
 It has a web UI with a SQL editor, a result grid, CSV export and copy to
 clipboard, backed by a small JSON API.
@@ -45,20 +47,29 @@ The resolved paths are logged at startup and shown by `GET /api/datasources`.
 
 `datasources.json` holds a list of connections. Copy
 [`examples/datasources.json`](examples/datasources.json) as a starting point.
+A c-treeRTG database on the same machine looks like this:
 
 ```json
 {
   "datasources": [
     {
-      "name": "local-postgres",
-      "description": "App database on the devbox",
-      "url": "jdbc:postgresql://localhost:5432/app",
-      "user": "app",
-      "password": "${PGPASSWORD}"
+      "name": "chinook",
+      "description": "c-treeRTG on localhost, database chinook",
+      "url": "jdbc:ctree:6597@localhost:chinook",
+      "driver": "ctree.jdbc.ctreeDriver",
+      "user": "ADMIN",
+      "password": "ADMIN"
     }
   ]
 }
 ```
+
+The c-tree URL is `jdbc:ctree:<port>@<host>:<database>`. 6597 is the default
+SQL port of a c-treeRTG server and `ADMIN`/`ADMIN` the default login; use your
+server's if they differ. The `driver` line is optional, since the c-tree jar
+registers its driver, but it gives a clearer error when the jar is missing.
+Other databases only need their own JDBC URL, for example
+`jdbc:postgresql://localhost:5432/app`.
 
 | Field                 | Required | Meaning |
 |-----------------------|----------|---------|
@@ -105,7 +116,9 @@ With `"readOnly": true`, SQLens does two things:
    `select ... for update`, `select ... into` and data-modifying `WITH`
    clauses. The error has SQLSTATE `25006`.
 2. It asks the driver for a read-only connection. Some drivers enforce this
-   (MySQL, MariaDB), others ignore it (most others). For PostgreSQL add
+   (MySQL, MariaDB), others ignore it (most others). Whether the c-tree
+   driver enforces it is untested, so count on the check in step 1, or try
+   an `update` on a test table to find out. For PostgreSQL add
    `"properties": { "readOnlyMode": "always" }` to make it stick, since SQLens
    runs with auto-commit.
 
@@ -113,7 +126,8 @@ The check is a keyword scan, not a SQL parser, so it can be wrong in both
 directions. It cannot see what a function or procedure called from a
 `SELECT` does, and a MySQL string with a backslash-escaped quote
 (`'don\'t delete'`) can be rejected. The only real guarantee is a database
-user that can only read.
+user that can only read. On c-treeRTG, that means a user who has been
+granted only `SELECT` on the tables.
 
 ### JDBC drivers
 
@@ -122,7 +136,28 @@ there are picked up on the next query, without a restart. A driver jar can
 also go into Tomcat's own `lib/` folder; SQLens falls back to drivers it finds
 there.
 
-Where to get them (download the jar from Maven Central):
+The jar must be readable by the user Tomcat runs as. Copy it rather than
+symlinking it, since a link into a folder that user can't read looks like a
+missing jar. `GET /api/datasources` lists the drivers found under `drivers`,
+and any jar Java could not open under `driverJarErrors`.
+
+#### c-treeRTG
+
+The c-tree JDBC driver is `ctreeJDBC.jar`. It ships with c-treeRTG and is not
+on Maven Central. Copy it from the `sql.jdbc` folder of your c-treeRTG
+install (the exact path depends on the version):
+
+```sh
+mkdir -p ~/.sqlens/drivers
+cp /path/to/c-treeRTG/sql.jdbc/ctreeJDBC.jar ~/.sqlens/drivers/
+chmod o+r ~/.sqlens/drivers/ctreeJDBC.jar
+```
+
+#### Other databases
+
+Any database with a JDBC driver should work the same way: put its jar in
+`drivers/` and add a datasource with its JDBC URL. Common ones (download the
+jar from Maven Central):
 
 | Database   | Jar |
 |------------|-----|
@@ -142,7 +177,13 @@ curl -L -o ~/.sqlens/drivers/postgresql-42.7.4.jar \
   https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.4/postgresql-42.7.4.jar
 ```
 
-## Deploy on Tomcat in WSL
+## Deploy on Tomcat
+
+Two setups are described: Tomcat unpacked in your home folder (simplest, and
+the one to use on WSL), and the Arch Linux `tomcat9` package running under
+systemd.
+
+### Tomcat in your home folder (WSL)
 
 The simplest setup on a WSL devbox is a Tomcat unpacked in your home folder,
 running as your own user, so `~/.sqlens` is your home's.
@@ -156,7 +197,7 @@ tar xzf apache-tomcat-9.0.96.tar.gz && mv apache-tomcat-9.0.96 ~/tomcat
 # SQLens home
 mkdir -p ~/.sqlens/drivers
 cp examples/datasources.json ~/.sqlens/datasources.json   # then edit it
-# put driver jars in ~/.sqlens/drivers
+cp /path/to/c-treeRTG/sql.jdbc/ctreeJDBC.jar ~/.sqlens/drivers/   # or other driver jars
 
 # Deploy and start
 cp target/sqlens.war ~/tomcat/webapps/
@@ -173,12 +214,52 @@ export SQLENS_HOME=/path/to/sqlens-home
 # or: export CATALINA_OPTS="$CATALINA_OPTS -Dsqlens.home=/path/to/sqlens-home"
 ```
 
-If you use the distro's `tomcat9` package instead, it runs as the `tomcat`
-user, so the default home becomes that user's home rather than yours. Set
-`SQLENS_HOME` in the service's environment (for example
-`/etc/default/tomcat9`) to a folder the `tomcat` user can read. That package
-runs as a systemd service, which WSL only supports when systemd is turned on,
-so the tarball setup above is usually easier.
+### Arch Linux `tomcat9` package (systemd)
+
+The package runs Tomcat as the `tomcat9` user through `jsvc`, deploys from
+`/var/lib/tomcat9/webapps` and logs to the systemd journal. Java's home
+folder is set to `/usr/share/tomcat9`, so SQLens needs to be told where your
+`.sqlens` folder is. This setup keeps the SQLens home in your own home folder:
+
+1. Point SQLens at your folder and let the service read your home. Run
+   `sudo systemctl edit tomcat9` and add:
+
+   ```ini
+   [Service]
+   Environment=SQLENS_HOME=/home/you/.sqlens
+   ProtectHome=read-only
+   ```
+
+   `ProtectHome=read-only` lets the sandboxed service read `/home`. Don't set
+   `User=`: `jsvc` must start as root and switches to `tomcat9` itself.
+
+2. Let `tomcat9` through your home folder without letting it list or read
+   anything else there:
+
+   ```sh
+   sudo setfacl -m u:tomcat9:x /home/you
+   ```
+
+   `~/.sqlens`, `datasources.json` and the driver jars must be readable by
+   others (`chmod -R o+rX ~/.sqlens`).
+
+3. Deploy and restart:
+
+   ```sh
+   sudo cp target/sqlens.war /var/lib/tomcat9/webapps/
+   sudo systemctl restart tomcat9
+   ```
+
+4. Check <http://localhost:8080/sqlens/api/datasources>: `configFile` should
+   be `/home/you/.sqlens/datasources.json` and `drivers` should list
+   `ctree.jdbc.ctreeDriver`.
+
+Logs: `journalctl -u tomcat9 -f`. If the service fails to start,
+`journalctl -u tomcat9 -n 50` names the path or user it is stuck on.
+
+Other distributions' packages differ in user name (`tomcat` on Debian and
+Ubuntu) and paths, but the same idea applies: set `SQLENS_HOME` in the
+service's environment and make the folder readable by the Tomcat user.
 
 To redeploy a new build, copy the WAR over the old one; Tomcat reloads it. The
 browser picks up the new UI on the next page load, since SQLens tells it to
@@ -191,7 +272,7 @@ Open <http://localhost:8080/sqlens/>.
 - Pick a datasource at the top. Its description and JDBC URL are shown next to
   it, and the editor's keyword highlighting follows the database type in the
   URL (PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, SQLite, else standard
-  SQL). The reload button re-reads the list after you edit `datasources.json`.
+  SQL, which is what c-tree datasources get). The reload button re-reads the list after you edit `datasources.json`.
 - **Ctrl+Enter** (⌘+Enter on a Mac) or **Run** runs the selected text. With
   nothing selected it runs the statement under the cursor: statements end at a
   `;` or a blank line, so a scratchpad of queries works without semicolons.
@@ -258,12 +339,12 @@ All endpoints return JSON. The UI and export features build on these.
 ```json
 {
   "datasources": [
-    { "name": "local-postgres", "description": "App database on the devbox",
-      "url": "jdbc:postgresql://localhost:5432/app", "user": "app", "readOnly": false }
+    { "name": "chinook", "description": "c-treeRTG on localhost, database chinook",
+      "url": "jdbc:ctree:6597@localhost:chinook", "user": "ADMIN", "readOnly": false }
   ],
   "configFile": "/home/me/.sqlens/datasources.json",
   "driversDir": "/home/me/.sqlens/drivers",
-  "drivers": ["org.postgresql.Driver"],
+  "drivers": ["ctree.jdbc.ctreeDriver"],
   "driverJarErrors": [],
   "maxGridRows": 50000,
   "error": null
@@ -278,7 +359,7 @@ Passwords are never returned. `error` explains a missing or broken config file, 
 Request:
 
 ```json
-{ "datasource": "local-postgres", "sql": "select * from customer", "maxRows": 10 }
+{ "datasource": "chinook", "sql": "select * from artist", "maxRows": 5 }
 ```
 
 `maxRows` is the row limit: any positive number (the UI offers 10, 100, 1000
@@ -291,13 +372,13 @@ Response for a query:
 
 ```json
 {
-  "datasource": "local-postgres",
+  "datasource": "chinook",
   "columns": [
-    { "name": "id", "jdbcType": "INTEGER", "dbType": "int4", "numeric": true },
+    { "name": "artistid", "jdbcType": "INTEGER", "dbType": "integer", "numeric": true },
     { "name": "name", "jdbcType": "VARCHAR", "dbType": "varchar", "numeric": false }
   ],
-  "rows": [[1, "Ada"], [2, "Linus"]],
-  "rowCount": 2,
+  "rows": [[1, "AC/DC"], [2, "Accept"], [3, "Aerosmith"], [4, "Alanis Morissette"], [5, "Alice In Chains"]],
+  "rowCount": 5,
   "truncated": true,
   "cappedAt": null,
   "updateCount": null,
@@ -324,7 +405,7 @@ on, so changes are committed immediately.
 Errors before any row is sent return HTTP 400 (404 for an unknown datasource):
 
 ```json
-{ "error": "Column \"NOPE\" not found ...", "sqlState": "42S22", "errorCode": 42122 }
+{ "error": "<the driver's message>", "sqlState": "42S22", "errorCode": 0 }
 ```
 
 If a failure happens while rows are streaming, the response is still HTTP 200,
@@ -336,7 +417,7 @@ Runs one statement like `/api/query` and returns the result as a file
 download (`Content-Disposition: attachment`).
 
 ```json
-{ "datasource": "local-postgres", "sql": "select * from customer", "maxRows": "all",
+{ "datasource": "chinook", "sql": "select * from track", "maxRows": "all",
   "format": "csv", "delimiter": ";", "decimalSeparator": "," }
 ```
 
