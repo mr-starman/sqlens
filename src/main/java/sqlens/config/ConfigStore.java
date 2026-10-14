@@ -1,7 +1,9 @@
 package sqlens.config;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
@@ -37,7 +39,7 @@ public final class ConfigStore {
 
     private final Path configFile;
     private final ObjectMapper mapper = new ObjectMapper()
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
 
     private FileTime loadedModified;
     private List<DataSourceConfig> datasources = List.of();
@@ -96,7 +98,7 @@ public final class ConfigStore {
         }
         loadedModified = modified;
         try {
-            ConfigFile file = mapper.readValue(Files.readString(configFile), ConfigFile.class);
+            ConfigFile file = read(Files.readString(configFile));
             datasources = toDataSources(file);
             maxGridRows = maxGridRows(file);
             error = null;
@@ -110,7 +112,55 @@ public final class ConfigStore {
     }
 
     List<DataSourceConfig> parse(String json) throws IOException {
-        return toDataSources(mapper.readValue(json, ConfigFile.class));
+        return toDataSources(read(json));
+    }
+
+    /**
+     * Parses the file, rejecting unknown keys (with a did-you-mean hint) so a typo
+     * such as {@code readonly} cannot silently turn a setting off.
+     */
+    private ConfigFile read(String json) throws IOException {
+        JsonNode tree;
+        try {
+            tree = mapper.readTree(json);
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException(describe(e), e);
+        }
+        if (tree == null || !tree.isObject()) {
+            throw new IllegalArgumentException("the file must hold a JSON object with a \"datasources\" list");
+        }
+        List<String> unknown = ConfigValidator.unknownKeys(tree);
+        if (!unknown.isEmpty()) {
+            throw new IllegalArgumentException(String.join("; ", unknown));
+        }
+        try {
+            return mapper.treeToValue(tree, ConfigFile.class);
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException(describe(e), e);
+        }
+    }
+
+    /** Jackson's message without its source dump, prefixed with where in the file it happened. */
+    private static String describe(JsonProcessingException e) {
+        String message = e.getOriginalMessage();
+        if (e instanceof JsonMappingException m && !m.getPath().isEmpty()) {
+            StringBuilder path = new StringBuilder();
+            for (JsonMappingException.Reference ref : m.getPath()) {
+                if (ref.getFieldName() != null) {
+                    if (path.length() > 0) {
+                        path.append('.');
+                    }
+                    path.append(ref.getFieldName());
+                } else if (ref.getIndex() >= 0) {
+                    path.append('[').append(ref.getIndex()).append(']');
+                }
+            }
+            return "\"" + path + "\": " + message;
+        }
+        if (e.getLocation() != null) {
+            return message + " (line " + e.getLocation().getLineNr() + ", column " + e.getLocation().getColumnNr() + ")";
+        }
+        return message;
     }
 
     private static int maxGridRows(ConfigFile file) {
@@ -183,18 +233,15 @@ public final class ConfigStore {
         return s == null || s.isBlank() ? null : s.trim();
     }
 
-    @JsonIgnoreProperties(ignoreUnknown = true)
     static final class ConfigFile {
         public Settings settings;
         public List<RawDataSource> datasources;
     }
 
-    @JsonIgnoreProperties(ignoreUnknown = true)
     static final class Settings {
         public Integer maxGridRows;
     }
 
-    @JsonIgnoreProperties(ignoreUnknown = true)
     static final class RawDataSource {
         public String name;
         public String description;

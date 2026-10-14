@@ -101,7 +101,13 @@ An optional top-level `settings` object holds app-wide settings:
 
 The file is re-read whenever it changes, so there is no need to restart Tomcat
 after editing it. If it is missing or invalid, the API reports why in the
-`error` field.
+`error` field and the UI shows it above the editor.
+
+Unknown fields make the file invalid, so a typo can't silently switch a
+setting off. `"readonly": true` gives
+`unknown field "readonly" in datasource "chinook", did you mean "readOnly"?`.
+Field names are case-sensitive. Keys inside `properties` are passed to the
+driver as is and are not checked.
 
 ### Read-only datasources
 
