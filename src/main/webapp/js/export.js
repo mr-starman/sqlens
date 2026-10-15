@@ -13,8 +13,8 @@
 import { latest, onResult } from './results.js';
 
 const STYLES = {
-  point: { label: 'Comma, 1.5', title: 'Comma between fields, decimal point (Excel with US/UK regional settings)', delimiter: ',', decimalSeparator: '.' },
-  comma: { label: 'Semicolon, 1,5', title: 'Semicolon between fields, decimal comma (Excel with most European regional settings)', delimiter: ';', decimalSeparator: ',' },
+  point: { label: 'Decimal point (1.5)', title: 'Decimal point, comma between fields (Excel with US/UK regional settings)', delimiter: ',', decimalSeparator: '.' },
+  comma: { label: 'Decimal comma (1,5)', title: 'Decimal comma, semicolon between fields (Excel with most European regional settings)', delimiter: ';', decimalSeparator: ',' },
 };
 
 export function setupExport({ container, notice, maxRows, store }) {

@@ -304,9 +304,9 @@ Open <http://localhost:8080/sqlens/>.
   ⌥⇧E on a Mac). They work anywhere on the page, including in the editor.
 - The picker next to them sets the number style for Excel, used by both Copy
   and Export:
-  - **Comma, 1.5**: fields separated by commas, decimal point. For Excel with
+  - **Decimal point (1.5)**: decimal point, fields separated by commas. For Excel with
     US or UK regional settings.
-  - **Semicolon, 1,5**: fields separated by semicolons, decimal comma. For
+  - **Decimal comma (1,5)**: decimal comma, fields separated by semicolons. For
     Excel with most European regional settings (Swedish, German, French...).
 
   The first visit picks the one that matches the browser's language. If Excel
