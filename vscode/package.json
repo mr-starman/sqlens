@@ -26,6 +26,19 @@
           "default": "http://localhost:8080/sqlens",
           "description": "Where the SQLens webapp runs, without the /api part."
         },
+        "sqlens.results.location": {
+          "type": "string",
+          "enum": [
+            "panel",
+            "beside"
+          ],
+          "enumDescriptions": [
+            "In the SQLens tab of the bottom panel, next to Terminal and Problems",
+            "In an editor tab beside the SQL file"
+          ],
+          "default": "panel",
+          "description": "Where query results are shown."
+        },
         "sqlens.maxRows": {
           "type": "integer",
           "default": 100,
@@ -88,7 +101,23 @@
         "icon": "$(refresh)"
       }
     ],
+    "viewsContainers": {
+      "panel": [
+        {
+          "id": "sqlens-results",
+          "title": "SQLens",
+          "icon": "media/database.svg"
+        }
+      ]
+    },
     "views": {
+      "sqlens-results": [
+        {
+          "type": "webview",
+          "id": "sqlens.results",
+          "name": "Results"
+        }
+      ],
       "explorer": [
         {
           "id": "sqlens.datasources",
