@@ -3,9 +3,14 @@
   "displayName": "SQLens",
   "description": "Run SQL against SQLens datasources and export results to CSV.",
   "version": "0.1.0",
-  "publisher": "sqlens",
+  "publisher": "mr-starman",
   "private": true,
   "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mr-starman/sqlens.git",
+    "directory": "vscode"
+  },
   "engines": {
     "vscode": "^1.90.0"
   },
@@ -188,7 +193,7 @@
     "compile": "tsc -p .",
     "watch": "tsc -watch -p .",
     "test": "tsc -p . && node --test out/test/",
-    "package": "vsce package --no-dependencies"
+    "package": "vsce package --no-dependencies --skip-license"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

@@ -7,7 +7,7 @@ in `datasources.json`.
 
 ## Use
 
-1. Start SQLens (see the main [README](../README.md)) and check that
+1. Start SQLens (see the main [README](https://github.com/mr-starman/sqlens#readme)) and check that
    <http://localhost:8080/sqlens/api/datasources> answers.
 2. Open a `.sql` file. Pick a datasource from **SQLens Datasources** in the
    Explorer, or with the status bar item.
