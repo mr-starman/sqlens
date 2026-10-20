@@ -1,0 +1,94 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: var(--vscode-editor-background);
+  color: var(--vscode-editor-foreground);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  color: var(--vscode-descriptionForeground);
+}
+
+.status .text {
+  flex: 1;
+  white-space: pre-wrap;
+}
+
+.status.error .text {
+  color: var(--vscode-errorForeground);
+}
+
+.status button {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: none;
+  padding: 3px 10px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.status button:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.grid {
+  flex: 1;
+  overflow: auto;
+}
+
+table {
+  border-collapse: collapse;
+  font-family: var(--vscode-editor-font-family);
+  font-size: var(--vscode-editor-font-size);
+}
+
+th, td {
+  height: 21px;
+  padding: 0 8px;
+  border: 1px solid var(--vscode-panel-border);
+  white-space: nowrap;
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+th {
+  position: sticky;
+  top: 0;
+  background: var(--vscode-sideBar-background, var(--vscode-editor-background));
+  font-weight: 600;
+}
+
+.num {
+  text-align: right;
+}
+
+.rownum {
+  color: var(--vscode-editorLineNumber-foreground);
+  text-align: right;
+}
+
+.null {
+  color: var(--vscode-disabledForeground);
+  font-style: italic;
+}
+
+tr.spacer td {
+  padding: 0;
+  border: none;
+}

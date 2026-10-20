@@ -1,0 +1,170 @@
+{
+  "name": "sqlens",
+  "displayName": "SQLens",
+  "description": "Run SQL against SQLens datasources and export results to CSV.",
+  "version": "0.1.0",
+  "publisher": "sqlens",
+  "private": true,
+  "license": "UNLICENSED",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Data Science",
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onLanguage:sql"
+  ],
+  "contributes": {
+    "configuration": {
+      "title": "SQLens",
+      "properties": {
+        "sqlens.baseUrl": {
+          "type": "string",
+          "default": "http://localhost:8080/sqlens",
+          "description": "Where the SQLens webapp runs, without the /api part."
+        },
+        "sqlens.maxRows": {
+          "type": "integer",
+          "default": 100,
+          "minimum": 0,
+          "description": "Rows to fetch for Run Query. 0 means all, up to the server's maxGridRows."
+        },
+        "sqlens.export.maxRows": {
+          "type": "integer",
+          "default": 0,
+          "minimum": 0,
+          "description": "Rows to write for Export to CSV. 0 means all."
+        },
+        "sqlens.export.numberStyle": {
+          "type": "string",
+          "enum": [
+            "point",
+            "comma"
+          ],
+          "enumDescriptions": [
+            "Decimal point, comma between fields (Excel with US/UK regional settings)",
+            "Decimal comma, semicolon between fields (Excel with most European regional settings)"
+          ],
+          "default": "point",
+          "description": "Number style of exported CSV files."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "sqlens.runQuery",
+        "title": "Run Query",
+        "category": "SQLens",
+        "icon": "$(play)"
+      },
+      {
+        "command": "sqlens.exportCsv",
+        "title": "Export Query to CSV…",
+        "category": "SQLens",
+        "icon": "$(desktop-download)"
+      },
+      {
+        "command": "sqlens.setMaxRows",
+        "title": "Set Row Limit",
+        "category": "SQLens"
+      },
+      {
+        "command": "sqlens.pickDatasource",
+        "title": "Pick Datasource",
+        "category": "SQLens"
+      },
+      {
+        "command": "sqlens.useDatasource",
+        "title": "Use This Datasource",
+        "category": "SQLens"
+      },
+      {
+        "command": "sqlens.refreshDatasources",
+        "title": "Reload Datasources",
+        "category": "SQLens",
+        "icon": "$(refresh)"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "sqlens.datasources",
+          "name": "SQLens Datasources"
+        }
+      ]
+    },
+    "menus": {
+      "editor/title": [
+        {
+          "command": "sqlens.runQuery",
+          "when": "editorLangId == sql",
+          "group": "navigation@1"
+        },
+        {
+          "command": "sqlens.exportCsv",
+          "when": "editorLangId == sql",
+          "group": "navigation@2"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "sqlens.runQuery",
+          "when": "editorLangId == sql",
+          "group": "sqlens@1"
+        },
+        {
+          "command": "sqlens.exportCsv",
+          "when": "editorLangId == sql",
+          "group": "sqlens@2"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "sqlens.refreshDatasources",
+          "when": "view == sqlens.datasources",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "sqlens.useDatasource",
+          "when": "view == sqlens.datasources && viewItem == datasource"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "sqlens.useDatasource",
+          "when": "false"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "sqlens.runQuery",
+        "key": "ctrl+enter",
+        "mac": "cmd+enter",
+        "when": "editorTextFocus && editorLangId == sql"
+      },
+      {
+        "command": "sqlens.exportCsv",
+        "key": "alt+shift+e",
+        "when": "editorTextFocus && editorLangId == sql"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -watch -p .",
+    "test": "tsc -p . && node --test out/test/",
+    "package": "vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/vscode": "~1.90.0",
+    "@vscode/vsce": "^3.2.0",
+    "typescript": "^5.6.0"
+  }
+}
