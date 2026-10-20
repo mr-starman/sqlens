@@ -110,27 +110,32 @@ export function activate(context: vscode.ExtensionContext): void {
     const style = NUMBER_STYLES[config().get<keyof typeof NUMBER_STYLES>('export.numberStyle', 'point')] ?? NUMBER_STYLES.point;
     const request = { ...query, maxRows: config().get<number>('export.maxRows', 0), format: 'csv', ...style };
 
-    await vscode.window.withProgress(
+    const exported = await vscode.window.withProgress(
       { location: vscode.ProgressLocation.Notification, title: `SQLens: exporting from ${query.datasource}`, cancellable: true },
       async (_progress, token) => {
         const abort = new AbortController();
         token.onCancellationRequested(() => abort.abort());
         try {
           await client().exportToFile(request, target.fsPath, abort.signal);
+          return true;
         } catch (e) {
           if (abort.signal.aborted) {
             void vscode.window.showInformationMessage('Export cancelled.');
           } else {
             void vscode.window.showErrorMessage(`Export failed: ${errorText(e)}`);
           }
-          return;
-        }
-        const open = 'Open';
-        const choice = await vscode.window.showInformationMessage(`Exported to ${path.basename(target.fsPath)}`, open);
-        if (choice === open) {
-          await vscode.commands.executeCommand('vscode.open', target);
+          return false;
         }
       });
+    // Outside withProgress: the progress notification stays until its callback
+    // returns, and this message waits for the user.
+    if (exported) {
+      const open = 'Open';
+      const choice = await vscode.window.showInformationMessage(`Exported to ${path.basename(target.fsPath)}`, open);
+      if (choice === open) {
+        await vscode.commands.executeCommand('vscode.open', target);
+      }
+    }
   }
 
   const rowsStatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 49);
