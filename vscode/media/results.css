@@ -3,10 +3,18 @@ html, body {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background: var(--vscode-editor-background);
+  background: var(--background);
   color: var(--vscode-editor-foreground);
   font-family: var(--vscode-font-family);
   font-size: var(--vscode-font-size);
+}
+
+body.in-editor {
+  --background: var(--vscode-editor-background);
+}
+
+body.in-panel {
+  --background: var(--vscode-panel-background);
 }
 
 body {
@@ -70,7 +78,7 @@ th, td {
 th {
   position: sticky;
   top: 0;
-  background: var(--vscode-sideBar-background, var(--vscode-editor-background));
+  background: var(--background);
   font-weight: 600;
 }
 

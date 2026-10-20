@@ -2,7 +2,7 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { ApiError, Datasource, describe, SqlensClient } from './api';
 import { Datasources } from './datasources';
-import { ResultsPanel } from './results';
+import { RESULTS_VIEW, ResultsPanel } from './results';
 import { statementAt } from './statement';
 
 /** Same choices as the web UI's number style picker. */
@@ -72,7 +72,7 @@ export function activate(context: vscode.ExtensionContext): void {
       return;
     }
     lastQuery = query;
-    results.show({ type: 'running', ...query });
+    await results.show({ type: 'running', ...query });
     await vscode.window.withProgress(
       { location: vscode.ProgressLocation.Window, title: `SQLens: running on ${query.datasource}`, cancellable: true },
       async (_progress, token) => {
@@ -80,10 +80,10 @@ export function activate(context: vscode.ExtensionContext): void {
         token.onCancellationRequested(() => abort.abort());
         try {
           const result = await client().query({ ...query, maxRows: config().get<number>('maxRows', 100) }, abort.signal);
-          results.show({ type: 'result', sql: query.sql, result });
+          await results.show({ type: 'result', sql: query.sql, result });
         } catch (e) {
           const message = abort.signal.aborted ? 'Cancelled. The database may keep running the query until it finishes.' : errorText(e);
-          results.show({ type: 'error', ...query, message });
+          await results.show({ type: 'error', ...query, message });
         }
       });
   }
@@ -185,6 +185,7 @@ export function activate(context: vscode.ExtensionContext): void {
     flash,
     vscode.commands.registerCommand('sqlens.setMaxRows', () => setMaxRows().catch(showError)),
     vscode.window.registerTreeDataProvider('sqlens.datasources', datasources),
+    vscode.window.registerWebviewViewProvider(RESULTS_VIEW, results, { webviewOptions: { retainContextWhenHidden: true } }),
     vscode.commands.registerCommand('sqlens.runQuery', () => runQuery().catch(showError)),
     vscode.commands.registerCommand('sqlens.exportCsv', () => exportCsv().catch(showError)),
     vscode.commands.registerCommand('sqlens.pickDatasource', () => datasources.pick().catch(showError)),
