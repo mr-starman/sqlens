@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>sqlens</groupId>
+    <artifactId>sqlens-eclipse</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>SQLens for Eclipse</name>
+
+    <modules>
+        <module>sqlens.eclipse</module>
+        <module>sqlens.eclipse.tests</module>
+    </modules>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <tycho.version>5.0.1</tycho.version>
+        <!-- Eclipse 2023-09 (4.29), the platform under iSCOBOL Evolve IDE 2025R1 -->
+        <eclipse.release>https://download.eclipse.org/releases/2023-09/</eclipse.release>
+    </properties>
+
+    <repositories>
+        <repository>
+            <id>eclipse-2023-09</id>
+            <layout>p2</layout>
+            <url>${eclipse.release}</url>
+        </repository>
+        <repository>
+            <id>orbit-2023-09</id>
+            <layout>p2</layout>
+            <url>https://download.eclipse.org/tools/orbit/simrel/orbit-aggregation/release/4.29.0/</url>
+        </repository>
+    </repositories>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.eclipse.tycho</groupId>
+                <artifactId>tycho-maven-plugin</artifactId>
+                <version>${tycho.version}</version>
+                <extensions>true</extensions>
+            </plugin>
+            <plugin>
+                <groupId>org.eclipse.tycho</groupId>
+                <artifactId>target-platform-configuration</artifactId>
+                <version>${tycho.version}</version>
+                <configuration>
+                    <environments>
+                        <environment><os>linux</os><ws>gtk</ws><arch>x86_64</arch></environment>
+                        <environment><os>win32</os><ws>win32</ws><arch>x86_64</arch></environment>
+                        <environment><os>macosx</os><ws>cocoa</ws><arch>x86_64</arch></environment>
+                        <environment><os>macosx</os><ws>cocoa</ws><arch>aarch64</arch></environment>
+                    </environments>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
