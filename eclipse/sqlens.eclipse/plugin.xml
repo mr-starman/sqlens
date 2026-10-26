@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+
+   <extension point="org.eclipse.ui.views">
+      <category id="sqlens.eclipse.category" name="SQLens"/>
+      <view
+            id="sqlens.eclipse.resultsView"
+            name="SQLens Results"
+            category="sqlens.eclipse.category"
+            class="sqlens.eclipse.ui.ResultsView"
+            allowMultiple="false"
+            restorable="true"/>
+   </extension>
+
+   <extension point="org.eclipse.ui.commands">
+      <category id="sqlens.eclipse.commands" name="SQLens"/>
+      <command
+            id="sqlens.eclipse.runQuery"
+            categoryId="sqlens.eclipse.commands"
+            name="Run Query"
+            description="Runs the selection, or the statement under the cursor, on the SQLens datasource"/>
+      <command
+            id="sqlens.eclipse.exportCsv"
+            categoryId="sqlens.eclipse.commands"
+            name="Export Query to CSV…"
+            description="Runs the selection, or the statement under the cursor, again and saves all rows as CSV"/>
+   </extension>
+
+   <extension point="org.eclipse.core.expressions.propertyTesters">
+      <propertyTester
+            id="sqlens.eclipse.sqlEditorTester"
+            type="org.eclipse.ui.IEditorPart"
+            namespace="sqlens"
+            properties="isSqlEditor"
+            class="sqlens.eclipse.ui.SqlEditorTester"/>
+   </extension>
+
+   <extension point="org.eclipse.ui.handlers">
+      <handler commandId="sqlens.eclipse.runQuery" class="sqlens.eclipse.ui.RunQueryHandler">
+         <activeWhen>
+            <with variable="activeEditor">
+               <test property="sqlens.isSqlEditor" forcePluginActivation="true"/>
+            </with>
+         </activeWhen>
+      </handler>
+      <handler commandId="sqlens.eclipse.exportCsv" class="sqlens.eclipse.ui.ExportCsvHandler">
+         <activeWhen>
+            <with variable="activeEditor">
+               <test property="sqlens.isSqlEditor" forcePluginActivation="true"/>
+            </with>
+         </activeWhen>
+      </handler>
+   </extension>
+
+   <extension point="org.eclipse.ui.bindings">
+      <key
+            commandId="sqlens.eclipse.runQuery"
+            contextId="org.eclipse.ui.contexts.window"
+            schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+            sequence="M1+ENTER"/>
+      <key
+            commandId="sqlens.eclipse.exportCsv"
+            contextId="org.eclipse.ui.contexts.window"
+            schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+            sequence="M2+M3+E"/>
+   </extension>
+
+   <extension point="org.eclipse.ui.menus">
+      <menuContribution locationURI="menu:org.eclipse.ui.main.menu?after=additions">
+         <menu id="sqlens.eclipse.menu" label="SQLens">
+            <command commandId="sqlens.eclipse.runQuery" style="push"/>
+            <command commandId="sqlens.eclipse.exportCsv" style="push"/>
+            <separator name="views" visible="true"/>
+            <command commandId="org.eclipse.ui.views.showView" label="Show Results" style="push">
+               <parameter name="org.eclipse.ui.views.showView.viewId" value="sqlens.eclipse.resultsView"/>
+            </command>
+         </menu>
+      </menuContribution>
+   </extension>
+
+   <extension point="org.eclipse.ui.preferencePages">
+      <page
+            id="sqlens.eclipse.preferences"
+            name="SQLens"
+            class="sqlens.eclipse.ui.SqlensPreferencePage"/>
+   </extension>
+
+</plugin>

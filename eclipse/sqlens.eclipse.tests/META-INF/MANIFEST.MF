@@ -1,0 +1,8 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: SQLens tests
+Bundle-SymbolicName: sqlens.eclipse.tests
+Bundle-Version: 0.1.0.qualifier
+Bundle-RequiredExecutionEnvironment: JavaSE-17
+Fragment-Host: sqlens.eclipse
+Require-Bundle: org.junit
