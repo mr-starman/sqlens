@@ -63,7 +63,7 @@
             commandId="sqlens.eclipse.exportCsv"
             contextId="org.eclipse.ui.contexts.window"
             schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
-            sequence="M2+M3+E"/>
+            sequence="M1+E M1+C"/>
    </extension>
 
    <extension point="org.eclipse.ui.menus">

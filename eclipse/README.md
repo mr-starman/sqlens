@@ -32,7 +32,7 @@ bundle did not load: start the IDE with `-consoleLog` and look for `sqlens.eclip
 4. **Copy** in the view's toolbar puts all rows on the clipboard as tab-separated
    text with headers, which pastes into Excel as cells. **Ctrl+C** in the grid,
    or the context menu, copies the selected rows.
-5. **Export CSV…** (the view's toolbar, or **Alt+Shift+E** in the editor) runs the
+5. **Export CSV…** (the view's toolbar, or **Ctrl+E Ctrl+C** in the editor) runs the
    statement again and streams all rows into a file. Cancel it from the
    progress view. If the query fails after rows were written, the partial file is
    deleted.
